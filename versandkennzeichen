@@ -1,0 +1,71 @@
+Sub ImportProcessAndVlookupZartiData()
+    Dim wsTarget As Worksheet
+    Dim wsSource As Worksheet
+    Dim wsArtikel As Worksheet
+    Dim wbSource As Workbook
+    Dim sourceFilePath As String
+    Dim lastRowSource As Long
+    Dim lastRowTarget As Long
+    Dim i As Long, j As Long
+    Dim lookupValue As Variant
+    Dim lookupRange As Range
+    Dim result As Variant
+    Dim found As Boolean
+
+    ' Ziel-Arbeitsblatt definieren
+    Set wsTarget = ThisWorkbook.Sheets("Zarti Daten")
+    Set wsArtikel = ThisWorkbook.Sheets("Aktuelle Artikeldaten")
+    
+    wsTarget.Cells.Clear
+
+    ' Dateipfad der Quelldatei
+    sourceFilePath = "C:\TEMP\ZARTI.XLSX"
+
+    ' Quelldatei öffnen
+    Set wbSource = Workbooks.Open(sourceFilePath)
+
+    ' Quell-Arbeitsblatt (erstes Blatt) definieren
+    Set wsSource = wbSource.Sheets(1)
+
+    ' Daten aus der Quelldatei kopieren
+    wsSource.UsedRange.Copy wsTarget.Range("A1")
+
+    ' Letzte Zeile in der Quell- und Zieltabelle ermitteln
+    lastRowSource = wsTarget.Cells(wsTarget.rows.Count, "B").End(xlUp).Row
+    lastRowTarget = wsArtikel.Cells(wsArtikel.rows.Count, "A").End(xlUp).Row
+
+    ' Werte in Spalte B und N ab Zeile 2 in Zahlen umwandeln
+    For i = 2 To lastRowSource
+        wsTarget.Cells(i, 2).Value = val(wsTarget.Cells(i, 2).Value)
+        wsTarget.Cells(i, 14).Value = val(wsTarget.Cells(i, 14).Value)
+    Next i
+
+    ' Quelldatei schließen ohne zu speichern
+    wbSource.Close SaveChanges:=False
+
+    ' Daten direkt zuordnen
+    For i = 2 To lastRowTarget
+        lookupValue = wsArtikel.Cells(i, 1).Value
+        found = False
+        
+        ' Durchsuche Zarti Daten
+        For j = 2 To lastRowSource
+            If wsTarget.Cells(j, 2).Value = lookupValue Then
+                ' Werte direkt zuweisen
+                wsArtikel.Cells(i, 2).Value = wsTarget.Cells(j, 3).Value ' Spalte C zu Spalte B
+                wsArtikel.Cells(i, 13).Value = wsTarget.Cells(j, 14).Value ' Spalte N zu Spalte M
+                wsArtikel.Cells(i, 4).Value = wsTarget.Cells(j, 17).Value ' Spalte Q zu Spalte D
+                wsArtikel.Cells(i, 15).Value = wsTarget.Cells(j, 20).Value ' Spalte T zu Spalte O
+                found = True
+                Exit For
+            End If
+        Next j
+        
+        If Not found Then
+            Debug.Print "Keine Übereinstimmung für Artikelnummer: " & lookupValue
+        End If
+    Next i
+
+    MsgBox "Daten importiert, verarbeitet und S-Verweis durchgeführt", vbInformation
+End Sub
+
